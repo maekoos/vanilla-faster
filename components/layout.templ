@@ -1,0 +1,86 @@
+package components
+
+import (
+	"context"
+	_ "embed"
+	"fmt"
+	"log"
+	"net/http"
+	"vanilla-faster/repository"
+)
+
+templ Layout() {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>Vanilla-faster</title>
+			<link rel="stylesheet" href="/static/styles.css"/>
+			<script src="/static/preload.js" defer></script>
+		</head>
+		<body hx-ext="preload" preload="mouseover" preload-images="true" class="flex flex-col h-screen w-screen">
+			<nav class="flex items-end justify-between border border-slate-300">
+				<a href="/" class="hover:bg-slate-100">
+					<h1 class="px-4 py-2 text-3xl font-extrabold text-orange-700">VanillaFaster</h1>
+				</a>
+				<form class="py-2 max-w-sm w-full flex items-center gap-1">
+					<input
+						type="text"
+						placeholder="Search here"
+						name="search"
+						class="p-2 block w-full rounded border border-slate-300"
+					/>
+					<button
+						type="submit"
+						class="p-2 rounded border border-slate-200 bg-slate-200 hover:bg-slate-300 active:bg-slate-400"
+					>Ok</button>
+				</form>
+				<div class="p-1 flex flex-col gap-1">
+					<div class="text-right">
+						<a href="/login" class="p-2 hover:underline">Log in →</a>
+					</div>
+					<div class="flex items-center">
+						<a href="/order" class="text-lg p-2 text-orange-700 hover:bg-slate-100">Order</a>
+						<a href="/order" class="text-lg p-2 text-orange-700 hover:bg-slate-100">Account</a>
+					</div>
+				</div>
+			</nav>
+			<div style="height: calc(100vh-82px); overflow: hidden;">
+				{ children... }
+			</div>
+		</body>
+	</html>
+}
+
+type contextKey string
+
+var sidebarCollectionsKey = contextKey("sidebar-collections")
+
+func SidebarCollectionsMw(repo *repository.Queries, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		collections, err := repo.GetCollections(r.Context())
+		if err != nil {
+			log.Panicln(err)
+		}
+
+		newR := r.WithContext(context.WithValue(r.Context(), sidebarCollectionsKey, collections))
+		next.ServeHTTP(w, newR)
+	})
+}
+
+templ SidebarWrapper() {
+	<main class="h-full grid grid-cols-[250px,1fr]">
+		<div class="p-4 border-r border-slate-300 overflow-auto">
+			<p class="font-bold">Categories:</p>
+			<ul>
+				for _, c := range ctx.Value(sidebarCollectionsKey).([]repository.Collection) {
+					<li><a href={ templ.URL(fmt.Sprintf("/%s", c.Slug)) } class="text-orange-700 hover:underline">{ c.Name }</a></li>
+				}
+			</ul>
+		</div>
+		<div class="px-6 py-4 overflow-auto">
+			{ children... }
+		</div>
+	</main>
+}

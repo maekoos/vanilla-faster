@@ -1,0 +1,52 @@
+package components
+
+import (
+	"fmt"
+	"vanilla-faster/repository"
+)
+
+templ HomePage(collectionRows []repository.GetCollectionsWithCategoriesRow, totalProductCount int64) {
+	{{
+	type collectionId = int32
+	processedCollections := make(map[collectionId]*repository.Collection)
+	collections := make([]*repository.Collection, 0)
+	categories := make(map[collectionId][]*repository.Category)
+
+	for _, c := range collectionRows {
+		if _, exists := processedCollections[c.Collection.ID]; !exists {
+			processedCollections[c.Collection.ID] = &c.Collection
+			collections = append(collections, &c.Collection)
+			categories[c.Collection.ID] = make([]*repository.Category, 0)
+		}
+
+		if c.Category.Slug != "" {
+			categories[c.Collection.ID] = append(categories[c.Collection.ID], &c.Category)
+		}
+	}
+
+	ia := NewImageAttrs()
+	}}
+	@Layout() {
+		@SidebarWrapper() {
+			<p class="mb-2 italic">{ fmt.Sprintf("Explore %d products", totalProductCount) }</p>
+			for _, c := range collections {
+				<h2 class="mb-4 text-3xl">{ c.Name }</h2>
+				<div class="mb-10 flex flex-wrap gap-4">
+					for _, category := range categories[c.ID] {
+						<a href={ templ.URL(fmt.Sprintf("/products/%s", category.Slug)) } preload class="p-1 w-32 h-24 hover:underline flex flex-col items-center gap-1">
+							// TODO: Placeholder:
+							<img
+								src={ ImageUrl(category.ImageUrl.String, 64) }
+								alt={ category.Name }
+								class="inline-block object-contain w-16 h-12"
+								loading={ ia.NextLoading() }
+								decoding={ ia.Decoding() }
+							/>
+							<p class="w-full leading-4 text-center line-clamp-2">{ category.Name }</p>
+						</a>
+					}
+				</div>
+			}
+		}
+	}
+}

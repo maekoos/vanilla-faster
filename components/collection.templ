@@ -1,0 +1,32 @@
+package components
+
+import (
+	"fmt"
+	"vanilla-faster/repository"
+)
+
+templ CollectionPage(collection repository.Collection, categories []*repository.Category) {
+	{{
+	ia := NewImageAttrs()
+	}}
+	@Layout() {
+		@SidebarWrapper() {
+			<h2 class="mb-4 text-3xl">{ collection.Name }</h2>
+			<div class="mb-10 flex flex-wrap gap-4">
+				for _, category := range categories {
+					<a href={ templ.URL(fmt.Sprintf("/products/%s", category.Slug)) } class="p-1 w-32 h-24 hover:underline flex flex-col items-center gap-1">
+						// TODO: Placeholder...
+						<img
+							src={ ImageUrl(category.ImageUrl.String, 64) }
+							alt={ category.Name }
+							class="inline-block object-contain w-16 h-12"
+							loading={ ia.NextLoading() }
+							decoding={ ia.Decoding() }
+						/>
+						<p class="w-full leading-4 text-center line-clamp-2">{ category.Name }</p>
+					</a>
+				}
+			</div>
+		}
+	}
+}

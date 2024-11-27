@@ -1,0 +1,135 @@
+package components
+
+import (
+	"fmt"
+	"log"
+	"vanilla-faster/repository"
+)
+
+templ CategoryPage(categoryRows []repository.GetCategoryRow, productCount int64) {
+	{{
+	if len(categoryRows) == 0 {
+		log.Panicln(fmt.Errorf("Category not found"))
+	}
+
+	category := categoryRows[0].Category
+	processedSubcollections := make(map[int32]*repository.Subcollection)
+	subcollections := make([]*repository.Subcollection, 0)
+	subcategories := make(map[int32][]*repository.Subcategory)
+
+	for _, r := range categoryRows {
+		if _, exist := processedSubcollections[r.Subcollection.ID]; !exist {
+			processedSubcollections[r.Subcollection.ID] = &r.Subcollection
+			subcollections = append(subcollections, &r.Subcollection)
+			subcategories[r.Subcollection.ID] = make([]*repository.Subcategory, 0)
+		}
+
+		if r.Subcategory.Name != "" {
+			subcategories[r.Subcollection.ID] = append(subcategories[r.Subcollection.ID], &r.Subcategory)
+		}
+	}
+
+	ia := NewImageAttrs()
+	}}
+	@Layout() {
+		@SidebarWrapper() {
+			<p>{ fmt.Sprintf("%d products in %s", productCount, category.Name) }</p>
+			for _, collection := range subcollections {
+				<h2 class="text-3xl">{ collection.Name }</h2>
+				<div class="mt-4 mb-10 flex flex-wrap gap-4">
+					for _, sc := range subcategories[collection.ID] {
+						<a
+							href={ templ.URL(fmt.Sprintf("/products/%s/%s", category.Slug, sc.Slug)) }
+							class="w-full md:w-56 p-2 border border-slate-300 hover:bg-slate-50 flex flex-row items-center gap-1"
+						>
+							// TODO: Placeholder image...
+							<img
+								src={ ImageUrl(sc.ImageUrl.String, 64) }
+								alt={ sc.Name }
+								class="block object-contain w-16 h-20"
+								loading={ ia.NextLoading() }
+								decoding={ ia.Decoding() }
+							/>
+							<span class="p-1 w-full leading-4 block line-clamp-3 hyphens-auto text-ellipsis">{ sc.Name }</span>
+						</a>
+					}
+				</div>
+			}
+		}
+	}
+}
+
+templ SubcategoryPage(currentPath string, products []repository.Product, productCount int64) {
+	{{
+	ia := NewImageAttrs()
+	}}
+	@Layout() {
+		@SidebarWrapper() {
+			<h2 class="text-3xl">category / subcategory</h2>
+			<p>{ fmt.Sprintf("%d products", productCount) }</p>
+			<div class="my-4 flex flex-wrap gap-4">
+				for _, p := range products {
+					<a
+						href={ templ.URL(fmt.Sprintf("%s/%s", currentPath, p.Slug)) }
+						class="w-full md:w-56 p-2 border border-slate-300 hover:bg-slate-50 flex flex-row items-center gap-1"
+					>
+						<img
+							src={ ImageUrl(p.ImageUrl.String, 64) }
+							alt={ p.Name }
+							class="block object-contain w-16 h-20"
+							loading={ ia.NextLoading() }
+							decoding={ ia.Decoding() }
+						/>
+						<div class="p-1 w-full">
+							<p class="text-lg">{ p.Name }</p>
+							<p class="text-sm leading-4 line-clamp-3 hyphens-auto text-ellipsis">{ p.Description }</p>
+						</div>
+					</a>
+				}
+			</div>
+		}
+	}
+}
+
+templ ProductPage(categoryPath string, product repository.Product, related []repository.Product) {
+	{{
+	ia := NewImageAttrs()
+	}}
+	@Layout() {
+		@SidebarWrapper() {
+			<h2 class="text-3xl">{ product.Name }</h2>
+			<div class="my-4 flex flex-wrap gap-4">
+				<img
+					src={ product.ImageUrl.String }
+					alt={ product.Name }
+					class="block object-contain w-full max-w-xs aspect-square"
+				/>
+				<div class="max-w-sm">
+					<p>{ product.Description }</p>
+					<p class="text-2xl font-bold text-orange-700">${ product.Price }</p>
+					<button class="py-2 px-4 text-white bg-orange-700 hover:bg-orange-800 active:bg-orange-900">Add to cart</button>
+				</div>
+			</div>
+			<div class="my-4 flex flex-wrap gap-4">
+				for _, p := range related {
+					<a
+						href={ templ.URL(fmt.Sprintf("%s/%s", categoryPath, p.Slug)) }
+						class="w-full md:w-56 p-2 border border-slate-300 hover:bg-slate-50 flex flex-row items-center gap-1"
+					>
+						<img
+							src={ ImageUrl(p.ImageUrl.String, 3000) }
+							alt={ p.Name }
+							class="block object-contain w-16 h-20"
+							loading={ ia.NextLoading() }
+							decoding={ ia.Decoding() }
+						/>
+						<div class="p-1 w-full">
+							<p class="text-lg">{ p.Name }</p>
+							<p class="text-sm leading-4 line-clamp-3 hyphens-auto text-ellipsis">{ p.Description }</p>
+						</div>
+					</a>
+				}
+			</div>
+		}
+	}
+}
